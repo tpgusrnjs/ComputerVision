@@ -40,7 +40,7 @@ def sphere(mask):
     cx = xs.mean()
     cy = ys.mean()
 
-    r = np.mean(np.sqrt((xs - cx)**2 + (ys - cy)**2))
+    r = ( (xs.max() - xs.min()) + (ys.max() - ys.min()) ) / 4
 
     return cx, cy, r
 
@@ -49,7 +49,7 @@ def sphere(mask):
 def surface_normal(hx, hy, cx, cy, r):
     nx = (hx - cx) / r
     ny = (hy - cy) / r
-    nz = np.sqrt(max(0, 1 - nx**2 - ny**2))
+    nz = np.sqrt(np.clip(1 - nx**2 - ny**2, 0, 1))
 
     return np.array([nx, ny, nz])
 
@@ -96,7 +96,7 @@ def photometric_stereo(imgs, mask, L):
 
     albedo_map = albedo.reshape(H, W) # (H, W)
     normals = normals.T.reshape(H, W, 3) # (H, W, 3)
-    normal_map = (normals + 1) / 2 * 255
+    normal_map = (normals + 1) / 2 * 255 # (H, W, 3)
 
     return albedo_map, normal_map, normals
 
@@ -126,6 +126,8 @@ if __name__ == "__main__":
 
     # T2: Normal map & T3: Light estimation
     L = light_estimation(sphere_img_paths, sphere_mask, cx, cy, r)
+    assert np.allclose(np.linalg.norm(L, axis=1), 1, atol=1e-3)
+    assert np.all(L[:,2] > 0)
     
     for data in dataset:
         save_name, _, img_paths, mask_path = data
@@ -155,9 +157,10 @@ if __name__ == "__main__":
         if not os.path.exists(save_path):
             os.makedirs(save_path)
         
+        normal_map = normal_map.astype(np.uint8)
         albedo_map = albedo_map / (albedo_map.max() + 1e-8)
         shading = shading / (shading.max() + 1e-8)
 
-        plt.imsave(os.path.join(save_path, "normals.png"), normal_map.astype(np.uint8))
+        plt.imsave(os.path.join(save_path, "normals.png"), normal_map)
         plt.imsave(os.path.join(save_path, "albedo.png"), albedo_map, cmap='gray')
         plt.imsave(os.path.join(save_path, "shading.png"), shading, cmap='gray')
