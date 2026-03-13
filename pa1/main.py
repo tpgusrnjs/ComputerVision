@@ -49,7 +49,7 @@ def sphere(mask):
 def surface_normal(hx, hy, cx, cy, r):
     nx = (hx - cx) / r
     ny = (hy - cy) / r
-    nz = np.sqrt(1 - nx**2 - ny**2)
+    nz = np.sqrt(max(0, 1 - nx**2 - ny**2))
 
     return np.array([nx, ny, nz])
 
@@ -144,7 +144,7 @@ if __name__ == "__main__":
         # T4: Photometric stereo
         albedo_map, normal_map, normals = photometric_stereo(imgs, mask, L)
 
-        # T5: Re-shading (use the 3-channel normal map returned by photometric_stereo)
+        # T5: Re-shading
         shading = re_shading(albedo_map, normals) #(H, W)
 
         #visualize_results(normal_map.astype(np.uint8), "Normal Map")
